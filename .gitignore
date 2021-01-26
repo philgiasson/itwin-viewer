@@ -27,3 +27,6 @@ common/temp/
 
 # Error reports
 **/report.**.json
+
+# Jetbrains
+.idea/**
