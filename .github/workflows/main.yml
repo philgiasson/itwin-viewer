@@ -29,4 +29,5 @@ jobs:
       - name: Run a multi-line script
         run: |
           cd packages/apps/viewer-sample-react
+          npm install
           rushx start
