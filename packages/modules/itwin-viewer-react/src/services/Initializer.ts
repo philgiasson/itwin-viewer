@@ -17,17 +17,18 @@ import { UrlDiscoveryClient } from "@bentley/itwin-client";
 import { Presentation } from "@bentley/presentation-frontend";
 import { PropertyGridManager } from "@bentley/property-grid-react";
 import { TreeWidget } from "@bentley/tree-widget-react";
+import { UiItemsManager } from "@bentley/ui-abstract";
 import { UiComponents } from "@bentley/ui-components";
 import { UiCore } from "@bentley/ui-core";
 import {
   AppNotificationManager,
+  ConfigurableUiManager,
   FrameworkReducer,
   FrameworkUiAdmin,
   StateManager,
   UiFramework,
 } from "@bentley/ui-framework";
 
-import { AppUi } from "../components/app-ui/AppUi";
 import { initRpc } from "../config/rpc";
 import { IModelBackendOptions, ItwinViewerInitializerParams } from "../types";
 import { ai, trackEvent } from "./telemetry/TelemetryService";
@@ -36,6 +37,8 @@ import { ai, trackEvent } from "./telemetry/TelemetryService";
 class Initializer {
   private static _initialized: Promise<void>;
   private static _initializing = false;
+  private static _iModelDataErrorMessage: string | undefined;
+  private static _synchronizerRootUrl: string | undefined;
 
   /** initialize rpc */
   private static async _initializeRpc(
@@ -105,9 +108,51 @@ class Initializer {
     }
   }
 
+  public static async getSynchronizerUrl(
+    contextId: string,
+    iModelId: string
+  ): Promise<string> {
+    if (!this._synchronizerRootUrl) {
+      const urlDiscoveryClient = new UrlDiscoveryClient();
+      this._synchronizerRootUrl = await urlDiscoveryClient.discoverUrl(
+        new ClientRequestContext(),
+        "itwinbridgeportal",
+        Config.App.get("imjs_buddi_resolve_url_using_region")
+      );
+    }
+    const portalUrl = `${this._synchronizerRootUrl}/${contextId}/${iModelId}`;
+    return IModelApp.i18n.translateWithNamespace(
+      "iTwinViewer",
+      "iModels.synchronizerLink",
+      {
+        bridgePortal: portalUrl,
+      }
+    );
+  }
+
   /** expose initialized promise */
   public static get initialized(): Promise<void> {
     return this._initialized;
+  }
+
+  /** Message to display when there are iModel data-related errors */
+  public static async getIModelDataErrorMessage(
+    contextId: string,
+    iModelId: string,
+    prefix?: string
+  ): Promise<string> {
+    if (this._iModelDataErrorMessage !== undefined) {
+      return prefix
+        ? `${prefix} ${this._iModelDataErrorMessage}`
+        : this._iModelDataErrorMessage;
+    }
+    const synchronizerPortalUrl = await this.getSynchronizerUrl(
+      contextId,
+      iModelId
+    );
+    return prefix
+      ? `${prefix} ${synchronizerPortalUrl}`
+      : synchronizerPortalUrl;
   }
 
   /** shutdown IModelApp */
@@ -231,7 +276,7 @@ class Initializer {
         // allow uiAdmin to open key-in palette when Ctrl+F2 is pressed - good for manually loading extensions
         IModelApp.uiAdmin.updateFeatureFlags({ allowKeyinPalette: true });
 
-        AppUi.initialize();
+        ConfigurableUiManager.initialize();
 
         // initialize RPC communication
         await Initializer._initializeRpc(
@@ -247,6 +292,13 @@ class Initializer {
         await PropertyGridManager.initialize(IModelApp.i18n);
 
         await TreeWidget.initialize(IModelApp.i18n);
+
+        // override the defaut daa error message
+        this._iModelDataErrorMessage = viewerOptions?.iModelDataErrorMessage;
+
+        viewerOptions?.uiProviders?.forEach((uiProvider) => {
+          UiItemsManager.register(uiProvider);
+        });
 
         console.log("iModel.js initialized");
 

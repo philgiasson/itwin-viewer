@@ -1,6 +1,34 @@
 # Change Log - @bentley/itwin-viewer-react
 
-This log was last generated on Fri, 22 Jan 2021 17:10:24 GMT and should not be manually modified.
+This log was last generated on Mon, 01 Feb 2021 18:57:57 GMT and should not be manually modified.
+
+## 5.10.0
+Mon, 01 Feb 2021 18:57:57 GMT
+
+### Minor changes
+
+- Add the ability to provide UI providers to the viewer
+
+## 5.9.0
+Wed, 27 Jan 2021 13:46:09 GMT
+
+### Minor changes
+
+- better handle data-related errors and allow configurability of message
+
+## 5.8.2
+Tue, 26 Jan 2021 20:28:07 GMT
+
+### Patches
+
+- move up UiFramework.setIModelConnection in order to be able to fetch connection from StateManager in the onIModelConnected callback
+
+## 5.8.1
+Mon, 25 Jan 2021 21:51:38 GMT
+
+### Patches
+
+- Add message for empty iModels
 
 ## 5.8.0
 Fri, 22 Jan 2021 17:10:24 GMT
